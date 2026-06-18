@@ -1,0 +1,183 @@
+### ==========================================
+### AgendaSENA - Coleccion de pruebas HTTP
+### ==========================================
+### Ejecutar con REST Client (VS Code) o IntelliJ HTTP Client
+### La aplicacion debe estar corriendo en http://localhost:8080
+### Los IDs pueden variar segun el orden de insercion de los datos de semilla.
+### Ajustar {id} segun corresponda.
+
+### ==========================================
+### 1. GESTION DE AMBIENTES
+### ==========================================
+
+### 1.1 Listar todos los ambientes
+GET http://localhost:8080/api/ambientes
+
+### 1.2 Obtener ambiente por ID
+GET http://localhost:8080/api/ambientes/1
+
+### 1.3 Crear ambiente exitoso
+POST http://localhost:8080/api/ambientes
+Content-Type: application/json
+
+{
+    "nombre": "Sala Testing",
+    "tipo": "SALA",
+    "capacidad": 40,
+    "activo": true
+}
+
+### 1.4 Actualizar ambiente
+PUT http://localhost:8080/api/ambientes/1
+Content-Type: application/json
+
+{
+    "nombre": "Sala Lluvia (renovada)",
+    "tipo": "SALA",
+    "capacidad": 35,
+    "activo": true
+}
+
+### 1.5 Eliminar ambiente
+DELETE http://localhost:8080/api/ambientes/4
+
+### 1.6 Ambiente no encontrado (404)
+GET http://localhost:8080/api/ambientes/999
+
+### ==========================================
+### 2. CREACION DE RESERVAS (con reglas)
+### ==========================================
+
+### 2.1 Crear reserva exitosa
+### Ambiente 1 (Sala Lluvia, cap 30), fecha futura, 2h de duracion
+POST http://localhost:8080/api/reservas
+Content-Type: application/json
+
+{
+    "ambienteId": 1,
+    "nombreInstructor": "Carlos Ruiz",
+    "fechaHoraInicio": "2026-12-15T08:00:00",
+    "fechaHoraFin": "2026-12-15T10:00:00",
+    "numAprendices": 20
+}
+
+### 2.2 Regla 7: Fecha pasada (400)
+POST http://localhost:8080/api/reservas
+Content-Type: application/json
+
+{
+    "ambienteId": 1,
+    "nombreInstructor": "Carlos Ruiz",
+    "fechaHoraInicio": "2020-01-01T08:00:00",
+    "fechaHoraFin": "2020-01-01T10:00:00",
+    "numAprendices": 10
+}
+
+### 2.3 Regla 4: Ambiente inactivo (400)
+### Ambiente 5 (Laboratorio Obsoleto) tiene activo = false
+POST http://localhost:8080/api/reservas
+Content-Type: application/json
+
+{
+    "ambienteId": 5,
+    "nombreInstructor": "Carlos Ruiz",
+    "fechaHoraInicio": "2026-12-15T10:00:00",
+    "fechaHoraFin": "2026-12-15T12:00:00",
+    "numAprendices": 10
+}
+
+### 2.4 Regla 3: Fuera del horario institucional (400)
+### Inicio antes de las 6:00
+POST http://localhost:8080/api/reservas
+Content-Type: application/json
+
+{
+    "ambienteId": 1,
+    "nombreInstructor": "Carlos Ruiz",
+    "fechaHoraInicio": "2026-12-15T05:00:00",
+    "fechaHoraFin": "2026-12-15T07:00:00",
+    "numAprendices": 10
+}
+
+### 2.5 Regla 3: Duracion mayor a 4 horas (400)
+POST http://localhost:8080/api/reservas
+Content-Type: application/json
+
+{
+    "ambienteId": 1,
+    "nombreInstructor": "Carlos Ruiz",
+    "fechaHoraInicio": "2026-12-15T08:00:00",
+    "fechaHoraFin": "2026-12-15T13:00:00",
+    "numAprendices": 10
+}
+
+### 2.6 Regla 2: Supera capacidad del ambiente (400)
+### Sala Lluvia tiene capacidad 30
+POST http://localhost:8080/api/reservas
+Content-Type: application/json
+
+{
+    "ambienteId": 1,
+    "nombreInstructor": "Carlos Ruiz",
+    "fechaHoraInicio": "2026-12-16T08:00:00",
+    "fechaHoraFin": "2026-12-16T10:00:00",
+    "numAprendices": 35
+}
+
+### 2.7 Regla 1: Solapamiento con otra reserva activa (409)
+### Crear reserva que se cruza con la de 2.1 (08:00-10:00)
+POST http://localhost:8080/api/reservas
+Content-Type: application/json
+
+{
+    "ambienteId": 1,
+    "nombreInstructor": "Ana Torres",
+    "fechaHoraInicio": "2026-12-15T09:00:00",
+    "fechaHoraFin": "2026-12-15T11:00:00",
+    "numAprendices": 15
+}
+
+### 2.8 Regla 5: Limite de 3 reservas por instructor por dia (400)
+### Crear 3 reservas para el mismo instructor en el mismo dia
+POST http://localhost:8080/api/reservas
+Content-Type: application/json
+
+{
+    "ambienteId": 2,
+    "nombreInstructor": "Tester Limite",
+    "fechaHoraInicio": "2026-12-20T08:00:00",
+    "fechaHoraFin": "2026-12-20T09:00:00",
+    "numAprendices": 10
+}
+
+### (Ejecutar esta 3 veces para llegar al limite)
+
+### ==========================================
+### 3. CANCELACION DE RESERVAS
+### ==========================================
+
+### 3.1 Cancelar reserva exitosa (200)
+### Usar el ID de la reserva creada en 2.1 (deberia ser un numero mayor)
+PATCH http://localhost:8080/api/reservas/6/cancelar
+
+### 3.2 Cancelar reserva inexistente (404)
+PATCH http://localhost:8080/api/reservas/999/cancelar
+
+### ==========================================
+### 4. CONSULTAS
+### ==========================================
+
+### 4.1 Reservas de un ambiente por fecha
+GET http://localhost:8080/api/ambientes/1/reservas?fecha=2026-12-15
+
+### 4.2 Ambientes disponibles en un rango
+### Despues de crear una reserva en Sala Lluvia (08:00-10:00),
+### esta no deberia aparecer como disponible en ese horario
+GET http://localhost:8080/api/ambientes/disponibles?inicio=2026-12-15T08:00:00&fin=2026-12-15T10:00:00
+
+### ==========================================
+### 5. REPORTES
+### ==========================================
+
+### 5.1 Reporte de ocupacion por fecha
+GET http://localhost:8080/api/reportes/ocupacion?fecha=2026-12-15
