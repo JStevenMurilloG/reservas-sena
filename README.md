@@ -1,4 +1,5 @@
 # AgendaSENA
+# Autores: Jhoan Steven Murillo Garcia & Valeria Becerra Giraldo
 
 API REST para gestion de reservas de ambientes de formacion del SENA.
 
